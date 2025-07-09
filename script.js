@@ -1,4 +1,6 @@
 // --- DOM element references ---
+const apiKeyInput = document.getElementById('api-key-input');
+const clearKeyBtn = document.getElementById('clear-key-btn');
 const pasteArea = document.getElementById('paste-area');
 const pastedImage = document.getElementById('pasted-image');
 const clearImageBtn = document.getElementById('clear-image-btn');
@@ -24,16 +26,53 @@ const foodChargeArrivalEl = document.getElementById('food-charge-arrival');
 const foodChargeTotalEl = document.getElementById('food-charge-total');
 
 let imageBase64 = null;
+const API_KEY_STORAGE = 'googleAiApiKey';
 
 // --- Event Listeners ---
+document.addEventListener('DOMContentLoaded', loadApiKey);
 document.addEventListener('paste', handlePaste);
 document.addEventListener('keydown', handleEnterKey);
 pasteArea.addEventListener('click', captureFromClipboard);
 calculateBtn.addEventListener('click', processImage);
 clearImageBtn.addEventListener('click', clearImage);
 resetBtn.addEventListener('click', resetApp);
+apiKeyInput.addEventListener('input', saveApiKey);
+clearKeyBtn.addEventListener('click', clearApiKey);
+
+
+// --- API Key Management ---
+function loadApiKey() {
+    const savedKey = localStorage.getItem(API_KEY_STORAGE);
+    if (savedKey) {
+        apiKeyInput.value = savedKey;
+    }
+    checkFormState();
+}
+
+function saveApiKey() {
+    const key = apiKeyInput.value.trim();
+    if (key) {
+        localStorage.setItem(API_KEY_STORAGE, key);
+    } else {
+        localStorage.removeItem(API_KEY_STORAGE);
+    }
+    checkFormState();
+}
+
+function clearApiKey() {
+    localStorage.removeItem(API_KEY_STORAGE);
+    apiKeyInput.value = '';
+    checkFormState();
+}
 
 // --- Core Functions ---
+function checkFormState() {
+    // Enable the calculate button only if both an API key and an image are present.
+    const hasApiKey = apiKeyInput.value.trim() !== '';
+    const hasImage = imageBase64 !== null;
+    calculateBtn.disabled = !(hasApiKey && hasImage);
+}
+
 function resetApp() {
     clearImage();
     resultsSection.classList.add('hidden');
@@ -47,6 +86,11 @@ function handleEnterKey(e) {
 }
 
 async function processImage() {
+    const apiKey = apiKeyInput.value.trim();
+    if (!apiKey) {
+        showError("Please enter your Google AI API key to proceed.");
+        return;
+    }
     if (!imageBase64) {
         showError("No image data available. Please paste an image first.");
         return;
@@ -55,9 +99,6 @@ async function processImage() {
     setLoading(true);
     resultsSection.classList.add('hidden');
     
-    // API Key is now included.
-    const apiKey = "AIzaSyC-gtkNLSKrmdeR5CV9esQ5P7Fi3ihHZzg"; 
-
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     const prompt = `From the provided image of a travel itinerary, identify the very first departure entry and the very last arrival entry. Extract their dates and times. Provide the output as a single JSON object with the keys "departure" and "arrival". The value for each key should be a string in the format "DD-MM-YYYY HH:MM". Example: {"departure": "18-02-2025 14:00", "arrival": "21-02-2025 00:50"}`;
 
@@ -72,7 +113,12 @@ async function processImage() {
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+        if (!response.ok) {
+             if (response.status === 403) {
+                throw new Error(`API request failed with status 403 (Forbidden). Please check if your API key is correct and has the necessary permissions.`);
+            }
+            throw new Error(`API request failed with status ${response.status}`);
+        }
 
         const result = await response.json();
         
@@ -81,7 +127,10 @@ async function processImage() {
             const parsedData = JSON.parse(text);
             calculateTimeDifference(parsedData.departure, parsedData.arrival);
         } else {
-            throw new Error("Could not extract data from the image.");
+            if (result.candidates && result.candidates[0].finishReason) {
+                 throw new Error(`Could not extract data. Reason: ${result.candidates[0].finishReason}. The model may have blocked the response for safety reasons.`);
+            }
+            throw new Error("Could not extract data from the image. The response was empty.");
         }
     } catch (error) {
         console.error("Error processing image:", error);
@@ -101,7 +150,7 @@ function calculateTimeDifference(departureStr, arrivalStr) {
         const departureDate = parseDateString(departureStr);
         const arrivalDate = parseDateString(arrivalStr);
 
-        if (isNaN(departureDate) || isNaN(arrivalDate)) throw new Error("Invalid date format extracted.");
+        if (isNaN(departureDate) || isNaN(arrivalDate)) throw new Error("Invalid date format extracted. Please ensure the image contains dates like DD-MM-YYYY HH:MM.");
         if (arrivalDate < departureDate) throw new Error("Arrival time cannot be before departure time.");
 
         // --- Calculation Logic ---
@@ -147,7 +196,7 @@ function calculateTimeDifference(departureStr, arrivalStr) {
             departureFactor = departureAllowance.factor;
             foodChargeDepartureEl.textContent = departureAllowance.text;
 
-            transitDays = seg2_ms < 0 ? 0 : seg2_ms / (1000 * 60 * 60 * 24);
+            transitDays = seg2_ms < 0 ? 0 : Math.round(seg2_ms / (1000 * 60 * 60 * 24));
             foodChargeTransitEl.textContent = `${transitDays} day(s)`;
 
             const arrivalHours = seg3_ms / (1000 * 60 * 60);
@@ -165,6 +214,7 @@ function calculateTimeDifference(departureStr, arrivalStr) {
         successContent.classList.remove('hidden');
         successContent.classList.add('fade-in');
         resultsSection.classList.remove('hidden');
+        errorMessage.classList.add('hidden');
 
     } catch (error) {
         console.error("Calculation Error:", error);
@@ -238,7 +288,7 @@ function clearImage() {
     pastedImage.classList.add('hidden');
     clearImageBtn.classList.add('hidden');
     pasteArea.classList.remove('hidden');
-    calculateBtn.disabled = true;
+    checkFormState(); // Update button state
     successContent.classList.add('hidden');
     errorMessage.classList.add('hidden');
 }
@@ -271,8 +321,8 @@ function displayPastedImage(file) {
         pastedImage.classList.remove('hidden');
         clearImageBtn.classList.remove('hidden');
         pasteArea.classList.add('hidden');
-        calculateBtn.disabled = false;
         resultsSection.classList.add('hidden');
+        checkFormState(); // Update button state
     };
     displayReader.readAsDataURL(file);
 
@@ -296,6 +346,7 @@ function setLoading(isLoading) {
     } else {
         btnText.classList.remove('hidden');
         loader.classList.add('hidden');
+        checkFormState(); // Re-check state after loading finishes
     }
 }
 
