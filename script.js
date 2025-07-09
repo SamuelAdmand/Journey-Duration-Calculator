@@ -322,12 +322,15 @@ function displayPastedImage(file) {
         clearImageBtn.classList.remove('hidden');
         pasteArea.classList.add('hidden');
         resultsSection.classList.add('hidden');
-        checkFormState(); // Update button state
     };
     displayReader.readAsDataURL(file);
 
     const apiReader = new FileReader();
-    apiReader.onloadend = () => { imageBase64 = apiReader.result.split(',')[1]; };
+    apiReader.onloadend = () => {
+        imageBase64 = apiReader.result.split(',')[1];
+        // This is the fix: check the state AFTER the image is processed.
+        checkFormState();
+    };
     apiReader.readAsDataURL(file);
 }
 
