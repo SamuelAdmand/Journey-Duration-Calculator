@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TA Bill Journey & Food Charge Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 md:p-8">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">TA Bill Journey & Food Charge Calculator</h1>
+            <p class="text-gray-600 mt-2">Calculate journey times and effective days for food allowance.</p>
+        </div>
+
+        <!-- Image Container -->
+        <div id="image-container" class="mb-6 relative">
+            <div id="paste-area" class="w-full h-64 border-2 border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p class="font-semibold">Click to Capture or Paste Image</p>
+                <p class="text-sm">(Ctrl+V or Cmd+V)</p>
+            </div>
+            <img id="pasted-image" src="" alt="Pasted Itinerary" class="hidden max-w-full mx-auto rounded-lg shadow-md"/>
+            <button id="clear-image-btn" class="hidden absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1.5 hover:bg-opacity-75 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Action Button -->
+        <div class="text-center mb-6">
+            <button id="calculate-btn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" disabled>
+                <span id="btn-text">Calculate</span>
+                <div id="loader" class="loader w-6 h-6 rounded-full border-4 border-t-4 border-gray-200 hidden mx-auto"></div>
+            </button>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="hidden bg-gray-50 p-6 rounded-lg">
+             <div id="error-message" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+                <p class="font-bold">Error</p>
+                <p id="error-text"></p>
+            </div>
+            <div id="success-content" class="hidden space-y-6">
+                 <div>
+                    <h3 class="font-semibold text-lg text-gray-700">Extracted Information:</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <p class="text-sm text-gray-500">Departure</p>
+                            <p id="departure-time" class="text-lg font-medium text-gray-900">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <p class="text-sm text-gray-500">Arrival</p>
+                            <p id="arrival-time" class="text-lg font-medium text-gray-900">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Journey Breakdown -->
+                <div class="pt-4 border-t border-gray-200 space-y-3">
+                    <h3 class="font-semibold text-lg text-gray-700">Journey Breakdown:</h3>
+                    <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
+                        <span class="text-gray-600">Time on departure day:</span>
+                        <span id="journey-seg-1" class="font-bold text-gray-900">-</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
+                        <span class="text-gray-600">Full days in transit:</span>
+                        <span id="journey-seg-2" class="font-bold text-gray-900">-</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
+                        <span class="text-gray-600">Time on arrival day:</span>
+                        <span id="journey-seg-3" class="font-bold text-gray-900">-</span>
+                    </div>
+                </div>
+
+                <!-- Food Charge Calculation -->
+                <div class="pt-4 border-t border-gray-200 space-y-3">
+                    <h3 class="font-semibold text-lg text-gray-700">Food Charge Allowance Calculation:</h3>
+                    <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
+                        <span class="text-gray-600">Departure Day Allowance:</span>
+                        <span id="food-charge-departure" class="font-bold text-gray-900">-</span>
+                    </div>
+                     <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
+                        <span class="text-gray-600">Full Transit Days:</span>
+                        <span id="food-charge-transit" class="font-bold text-gray-900">-</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
+                        <span class="text-gray-600">Arrival Day Allowance:</span>
+                        <span id="food-charge-arrival" class="font-bold text-gray-900">-</span>
+                    </div>
+                     <div class="flex justify-between items-center bg-blue-100 p-3 rounded-lg mt-2 border-t-2 border-blue-200">
+                        <span class="text-blue-800 font-bold">Total Effective Days:</span>
+                        <span id="food-charge-total" class="font-bold text-blue-800 text-xl">-</span>
+                    </div>
+                </div>
+
+                <!-- Total Time -->
+                <div class="pt-4 mt-4 border-t-2 border-gray-200">
+                    <h3 class="font-semibold text-lg text-gray-700">Total Journey Time:</h3>
+                    <p id="total-time" class="text-3xl font-bold text-blue-600 mt-1">-</p>
+                </div>
+
+                <div class="text-center pt-4">
+                     <button id="reset-btn" class="bg-gray-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-700 transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">Calculate Another Journey</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
