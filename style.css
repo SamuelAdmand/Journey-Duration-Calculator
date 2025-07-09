@@ -1,0 +1,25 @@
+body {
+    font-family: 'Inter', sans-serif;
+}
+.paste-area {
+    border-style: dashed;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+.paste-area.highlight {
+    background-color: #e0f2fe; /* light blue */
+    border-color: #0284c7; /* sky blue */
+}
+.loader {
+    border-top-color: #3498db;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
