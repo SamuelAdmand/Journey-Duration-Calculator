@@ -55,7 +55,9 @@ async function processImage() {
     setLoading(true);
     resultsSection.classList.add('hidden');
     
-    const apiKey = ""; // Add your API key here if needed
+    // API Key is now included.
+    const apiKey = "AIzaSyC-gtkNLSKrmdeR5CV9esQ5P7Fi3ihHZzg"; 
+
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     const prompt = `From the provided image of a travel itinerary, identify the very first departure entry and the very last arrival entry. Extract their dates and times. Provide the output as a single JSON object with the keys "departure" and "arrival". The value for each key should be a string in the format "DD-MM-YYYY HH:MM". Example: {"departure": "18-02-2025 14:00", "arrival": "21-02-2025 00:50"}`;
 
